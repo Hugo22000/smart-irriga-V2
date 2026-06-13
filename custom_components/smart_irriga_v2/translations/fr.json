@@ -3,9 +3,13 @@
     "step": {
       "user": {
         "title": "Zone",
+        "description": "Configurez le nom de votre zone d'irrigation et le nombre de pompes.",
         "data": {
           "zone_name": "Nom de la zone",
           "num_pumps": "Nombre de pompes"
+        },
+        "data_description": {
+          "num_pumps": "Nombre de pompes à configurer pour cette zone (maximum 3)"
         }
       },
       "pumps": {
