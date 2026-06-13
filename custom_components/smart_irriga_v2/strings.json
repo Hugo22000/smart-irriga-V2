@@ -19,6 +19,27 @@
           "switch": "Switch entity",
           "flow_rate": "Flow rate (ml)"
         }
+      },
+      "mode": {
+        "title": "Activation mode",
+        "data": {
+          "activation_mode": "Mode",
+          "irrigation_duration": "Duration (seconds)"
+        }
+      },
+      "schedule": {
+        "title": "Scheduling",
+        "data": {
+          "schedule_time": "Start time",
+          "schedule_days": "Days"
+        }
+      },
+      "humidity": {
+        "title": "Humidity sensor",
+        "data": {
+          "humidity_sensor": "Humidity sensor",
+          "humidity_threshold": "Threshold (%)"
+        }
       }
     }
   },
@@ -27,7 +48,9 @@
       "init": {
         "title": "Pump settings",
         "data": {
-          "num_pumps": "Number of pumps"
+          "num_pumps": "Number of pumps",
+          "activation_mode": "Mode",
+          "irrigation_duration": "Duration (seconds)"
         }
       },
       "pumps": {
@@ -36,6 +59,20 @@
         "data": {
           "switch": "Switch entity",
           "flow_rate": "Flow rate (ml)"
+        }
+      },
+      "schedule": {
+        "title": "Scheduling",
+        "data": {
+          "schedule_time": "Start time",
+          "schedule_days": "Days"
+        }
+      },
+      "humidity": {
+        "title": "Humidity sensor",
+        "data": {
+          "humidity_sensor": "Humidity sensor",
+          "humidity_threshold": "Threshold (%)"
         }
       }
     }
