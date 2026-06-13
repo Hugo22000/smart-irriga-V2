@@ -19,6 +19,34 @@
           "switch": "Interrupteur",
           "flow_rate": "Débit (ml)"
         }
+      },
+      "mode": {
+        "title": "Mode d'activation",
+        "data": {
+          "activation_mode": "Mode",
+          "irrigation_duration": "Durée (secondes)"
+        },
+        "data_description": {
+          "activation_mode": "Manuel : déclenché par le bouton. Planification : automatique selon un horaire. Capteur d'humidité : automatique quand le sol est sec.",
+          "irrigation_duration": "Durée d'arrosage avant extinction automatique des pompes"
+        }
+      },
+      "schedule": {
+        "title": "Planification",
+        "data": {
+          "schedule_time": "Heure de déclenchement",
+          "schedule_days": "Jours"
+        }
+      },
+      "humidity": {
+        "title": "Capteur d'humidité",
+        "data": {
+          "humidity_sensor": "Capteur d'humidité",
+          "humidity_threshold": "Seuil (%)"
+        },
+        "data_description": {
+          "humidity_threshold": "L'arrosage se déclenche quand l'humidité passe sous ce seuil"
+        }
       }
     }
   },
@@ -27,7 +55,9 @@
       "init": {
         "title": "Paramètres des pompes",
         "data": {
-          "num_pumps": "Nombre de pompes"
+          "num_pumps": "Nombre de pompes",
+          "activation_mode": "Mode d'activation",
+          "irrigation_duration": "Durée (secondes)"
         }
       },
       "pumps": {
@@ -36,6 +66,20 @@
         "data": {
           "switch": "Interrupteur",
           "flow_rate": "Débit (ml)"
+        }
+      },
+      "schedule": {
+        "title": "Planification",
+        "data": {
+          "schedule_time": "Heure de déclenchement",
+          "schedule_days": "Jours"
+        }
+      },
+      "humidity": {
+        "title": "Capteur d'humidité",
+        "data": {
+          "humidity_sensor": "Capteur d'humidité",
+          "humidity_threshold": "Seuil (%)"
         }
       }
     }

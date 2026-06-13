@@ -11,20 +11,47 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
-    DOMAIN,
-    CONF_ZONE_NAME,
+    CONF_ACTIVATION_MODE,
+    CONF_HUMIDITY_SENSOR,
+    CONF_HUMIDITY_THRESHOLD,
+    CONF_IRRIGATION_DURATION,
     CONF_NUM_PUMPS,
-    CONF_PUMPS,
-    CONF_PUMP_SWITCH,
     CONF_PUMP_FLOW_RATE,
-    DEFAULT_ZONE_NAME,
-    DEFAULT_NUM_PUMPS,
-    MIN_FLOW_RATE,
-    MAX_FLOW_RATE,
+    CONF_PUMP_SWITCH,
+    CONF_PUMPS,
+    CONF_SCHEDULE_DAYS,
+    CONF_SCHEDULE_TIME,
+    CONF_ZONE_NAME,
     DEFAULT_FLOW_RATE,
+    DEFAULT_HUMIDITY_THRESHOLD,
+    DEFAULT_IRRIGATION_DURATION,
+    DEFAULT_NUM_PUMPS,
+    DEFAULT_ZONE_NAME,
+    DOMAIN,
+    MAX_FLOW_RATE,
+    MIN_FLOW_RATE,
+    MODE_HUMIDITY,
+    MODE_MANUAL,
+    MODE_SCHEDULE,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_MODE_OPTIONS = [
+    {"value": MODE_MANUAL, "label": "Manuel"},
+    {"value": MODE_SCHEDULE, "label": "Planification"},
+    {"value": MODE_HUMIDITY, "label": "Capteur d'humidité"},
+]
+
+_DAY_OPTIONS = [
+    {"value": "mon", "label": "Lundi"},
+    {"value": "tue", "label": "Mardi"},
+    {"value": "wed", "label": "Mercredi"},
+    {"value": "thu", "label": "Jeudi"},
+    {"value": "fri", "label": "Vendredi"},
+    {"value": "sat", "label": "Samedi"},
+    {"value": "sun", "label": "Dimanche"},
+]
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -38,6 +65,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._num_pumps: int = DEFAULT_NUM_PUMPS
         self._pumps_config: list[dict[str, Any]] = []
         self._current_pump_index: int = 0
+        self._mode: str = MODE_MANUAL
+        self._duration: int = DEFAULT_IRRIGATION_DURATION
+        self._schedule_time: str = "08:00:00"
+        self._schedule_days: list[str] = []
+        self._humidity_sensor: str = ""
+        self._humidity_threshold: int = DEFAULT_HUMIDITY_THRESHOLD
 
     @staticmethod
     @callback
@@ -78,7 +111,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             })
             self._current_pump_index += 1
             if self._current_pump_index >= self._num_pumps:
-                return await self._async_create_entry()
+                return await self.async_step_mode()
 
         schema = vol.Schema({
             vol.Required(CONF_PUMP_SWITCH): selector.EntitySelector(
@@ -101,20 +134,92 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_mode(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is not None:
+            self._mode = user_input[CONF_ACTIVATION_MODE]
+            self._duration = int(user_input[CONF_IRRIGATION_DURATION])
+            if self._mode == MODE_SCHEDULE:
+                return await self.async_step_schedule()
+            if self._mode == MODE_HUMIDITY:
+                return await self.async_step_humidity()
+            return await self._async_create_entry()
+
+        schema = vol.Schema({
+            vol.Required(CONF_ACTIVATION_MODE, default=self._mode): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_MODE_OPTIONS,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Required(CONF_IRRIGATION_DURATION, default=self._duration): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=10, max=3600, step=10, mode="box")
+            ),
+        })
+
+        return self.async_show_form(step_id="mode", data_schema=schema)
+
+    async def async_step_schedule(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is not None:
+            self._schedule_time = user_input[CONF_SCHEDULE_TIME]
+            self._schedule_days = user_input[CONF_SCHEDULE_DAYS]
+            return await self._async_create_entry()
+
+        schema = vol.Schema({
+            vol.Required(CONF_SCHEDULE_TIME, default=self._schedule_time): selector.TimeSelector(),
+            vol.Required(CONF_SCHEDULE_DAYS, default=self._schedule_days): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_DAY_OPTIONS,
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+        })
+
+        return self.async_show_form(step_id="schedule", data_schema=schema)
+
+    async def async_step_humidity(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is not None:
+            self._humidity_sensor = user_input[CONF_HUMIDITY_SENSOR]
+            self._humidity_threshold = int(user_input[CONF_HUMIDITY_THRESHOLD])
+            return await self._async_create_entry()
+
+        schema = vol.Schema({
+            vol.Required(CONF_HUMIDITY_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Required(CONF_HUMIDITY_THRESHOLD, default=self._humidity_threshold): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=100, step=5, mode="box")
+            ),
+        })
+
+        return self.async_show_form(step_id="humidity", data_schema=schema)
+
     async def _async_create_entry(self) -> FlowResult:
-        data = {
+        data: dict[str, Any] = {
             CONF_ZONE_NAME: self._zone_name,
             CONF_NUM_PUMPS: self._num_pumps,
             CONF_PUMPS: self._pumps_config,
+            CONF_ACTIVATION_MODE: self._mode,
+            CONF_IRRIGATION_DURATION: self._duration,
         }
-        return self.async_create_entry(
-            title=f"{self._zone_name} ({self._num_pumps} pumps)",
-            data=data,
-        )
+        if self._mode == MODE_SCHEDULE:
+            data[CONF_SCHEDULE_TIME] = self._schedule_time
+            data[CONF_SCHEDULE_DAYS] = self._schedule_days
+        elif self._mode == MODE_HUMIDITY:
+            data[CONF_HUMIDITY_SENSOR] = self._humidity_sensor
+            data[CONF_HUMIDITY_THRESHOLD] = self._humidity_threshold
+
+        return self.async_create_entry(title=self._zone_name, data=data)
 
 
 class PumpOptionsFlow(config_entries.OptionsFlow):
-    """Allow modifying the number of pumps, their switch and flow rate."""
+    """Allow modifying the number of pumps, their switch, flow rate and activation mode."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
@@ -123,8 +228,33 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
             or config_entry.data.get(CONF_PUMPS, [])
         )
         self._num_pumps: int = (
-            len(self._existing_pumps)
+            int(config_entry.options.get(CONF_NUM_PUMPS, 0))
+            or len(self._existing_pumps)
             or int(config_entry.data.get(CONF_NUM_PUMPS, DEFAULT_NUM_PUMPS))
+        )
+        self._mode: str = (
+            config_entry.options.get(CONF_ACTIVATION_MODE)
+            or config_entry.data.get(CONF_ACTIVATION_MODE, MODE_MANUAL)
+        )
+        self._duration: int = int(
+            config_entry.options.get(CONF_IRRIGATION_DURATION)
+            or config_entry.data.get(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION)
+        )
+        self._schedule_time: str = (
+            config_entry.options.get(CONF_SCHEDULE_TIME)
+            or config_entry.data.get(CONF_SCHEDULE_TIME, "08:00:00")
+        )
+        self._schedule_days: list[str] = list(
+            config_entry.options.get(CONF_SCHEDULE_DAYS)
+            or config_entry.data.get(CONF_SCHEDULE_DAYS, [])
+        )
+        self._humidity_sensor: str = (
+            config_entry.options.get(CONF_HUMIDITY_SENSOR)
+            or config_entry.data.get(CONF_HUMIDITY_SENSOR, "")
+        )
+        self._humidity_threshold: int = int(
+            config_entry.options.get(CONF_HUMIDITY_THRESHOLD)
+            or config_entry.data.get(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)
         )
         self._updated_pumps: list[dict[str, Any]] = []
         self._current_pump_index: int = 0
@@ -132,9 +262,11 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Ask for the new number of pumps."""
+        """Ask for new number of pumps, mode and duration."""
         if user_input is not None:
             self._num_pumps = int(user_input[CONF_NUM_PUMPS])
+            self._mode = user_input[CONF_ACTIVATION_MODE]
+            self._duration = int(user_input[CONF_IRRIGATION_DURATION])
             self._updated_pumps = []
             self._current_pump_index = 0
             return await self.async_step_pumps()
@@ -143,6 +275,15 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
             vol.Required(CONF_NUM_PUMPS, default=self._num_pumps): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=1, max=3, step=1, mode="box")
             ),
+            vol.Required(CONF_ACTIVATION_MODE, default=self._mode): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_MODE_OPTIONS,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Required(CONF_IRRIGATION_DURATION, default=self._duration): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=10, max=3600, step=10, mode="box")
+            ),
         })
 
         return self.async_show_form(step_id="init", data_schema=schema)
@@ -150,7 +291,6 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
     async def async_step_pumps(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Configure each pump (switch + flow rate) one by one."""
         if user_input is not None:
             self._updated_pumps.append({
                 CONF_PUMP_SWITCH: user_input[CONF_PUMP_SWITCH],
@@ -158,13 +298,11 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
             })
             self._current_pump_index += 1
             if self._current_pump_index >= self._num_pumps:
-                return self.async_create_entry(
-                    title="",
-                    data={
-                        CONF_NUM_PUMPS: self._num_pumps,
-                        CONF_PUMPS: self._updated_pumps,
-                    },
-                )
+                if self._mode == MODE_SCHEDULE:
+                    return await self.async_step_schedule()
+                if self._mode == MODE_HUMIDITY:
+                    return await self.async_step_humidity()
+                return self._create_options_entry()
 
         existing = (
             self._existing_pumps[self._current_pump_index]
@@ -199,3 +337,64 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
                 "total_pumps": str(self._num_pumps),
             },
         )
+
+    async def async_step_schedule(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is not None:
+            self._schedule_time = user_input[CONF_SCHEDULE_TIME]
+            self._schedule_days = user_input[CONF_SCHEDULE_DAYS]
+            return self._create_options_entry()
+
+        schema = vol.Schema({
+            vol.Required(CONF_SCHEDULE_TIME, default=self._schedule_time): selector.TimeSelector(),
+            vol.Required(CONF_SCHEDULE_DAYS, default=self._schedule_days): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_DAY_OPTIONS,
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+        })
+
+        return self.async_show_form(step_id="schedule", data_schema=schema)
+
+    async def async_step_humidity(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is not None:
+            self._humidity_sensor = user_input[CONF_HUMIDITY_SENSOR]
+            self._humidity_threshold = int(user_input[CONF_HUMIDITY_THRESHOLD])
+            return self._create_options_entry()
+
+        humidity_sensor_field = (
+            vol.Required(CONF_HUMIDITY_SENSOR, default=self._humidity_sensor)
+            if self._humidity_sensor
+            else vol.Required(CONF_HUMIDITY_SENSOR)
+        )
+
+        schema = vol.Schema({
+            humidity_sensor_field: selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Required(CONF_HUMIDITY_THRESHOLD, default=self._humidity_threshold): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=100, step=5, mode="box")
+            ),
+        })
+
+        return self.async_show_form(step_id="humidity", data_schema=schema)
+
+    def _create_options_entry(self) -> FlowResult:
+        options: dict[str, Any] = {
+            CONF_NUM_PUMPS: self._num_pumps,
+            CONF_PUMPS: self._updated_pumps,
+            CONF_ACTIVATION_MODE: self._mode,
+            CONF_IRRIGATION_DURATION: self._duration,
+        }
+        if self._mode == MODE_SCHEDULE:
+            options[CONF_SCHEDULE_TIME] = self._schedule_time
+            options[CONF_SCHEDULE_DAYS] = self._schedule_days
+        elif self._mode == MODE_HUMIDITY:
+            options[CONF_HUMIDITY_SENSOR] = self._humidity_sensor
+            options[CONF_HUMIDITY_THRESHOLD] = self._humidity_threshold
+        return self.async_create_entry(title="", data=options)
