@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, BUTTON_START_IRRIGATION
+from .const import DOMAIN, BUTTON_START_IRRIGATION, CONF_PUMPS, CONF_PUMP_SWITCH, CONF_PUMP_FLOW_RATE
 
 
 async def async_setup_entry(
@@ -29,7 +29,14 @@ class StartIrrigationButton(ButtonEntity):
         self._attr_icon = "mdi:water-pump"
 
     async def async_press(self) -> None:
-        """Handle the button press."""
-        # Logic to start irrigation for all pumps in the zone
-        # This is a placeholder - implement your actual irrigation logic here
-        pass
+        """Turn on all pumps and accumulate the dispensed volume."""
+        pumps = list(self._entry.options.get(CONF_PUMPS) or self._entry.data.get(CONF_PUMPS, []))
+        domain_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+
+        for pump in pumps:
+            switch_entity_id = pump.get(CONF_PUMP_SWITCH)
+            if switch_entity_id:
+                await self.hass.services.async_call(
+                    "switch", "turn_on", {"entity_id": switch_entity_id}
+                )
+            domain_data["total_volume"] = domain_data.get("total_volume", 0.0) + pump.get(CONF_PUMP_FLOW_RATE, 0)

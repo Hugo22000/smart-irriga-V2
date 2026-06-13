@@ -40,6 +40,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pumps_config: list[dict[str, Any]] = []
         self._current_pump_index: int = 0
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> PumpOptionsFlow:
+        """Return the options flow."""
+        return PumpOptionsFlow(config_entry)
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -105,4 +111,66 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=f"{self._zone_name} ({self._num_pumps} pumps)",
             data=data,
+        )
+
+
+class PumpOptionsFlow(config_entries.OptionsFlow):
+    """Allow modifying pump flow rates after initial setup."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._config_entry = config_entry
+        self._pumps: list[dict[str, Any]] = list(
+            config_entry.options.get(CONF_PUMPS)
+            or config_entry.data.get(CONF_PUMPS, [])
+        )
+        self._updated_pumps: list[dict[str, Any]] = []
+        self._current_pump_index: int = 0
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Entry point: redirect to pump configuration."""
+        return await self.async_step_pumps(user_input)
+
+    async def async_step_pumps(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show a form to update the flow rate of each pump one by one."""
+        if not self._pumps:
+            return self.async_create_entry(title="", data={})
+
+        if user_input is not None:
+            current_pump = self._pumps[self._current_pump_index]
+            self._updated_pumps.append({
+                CONF_PUMP_SWITCH: current_pump[CONF_PUMP_SWITCH],
+                CONF_PUMP_FLOW_RATE: int(user_input[CONF_PUMP_FLOW_RATE]),
+            })
+            self._current_pump_index += 1
+            if self._current_pump_index >= len(self._pumps):
+                return self.async_create_entry(
+                    title="",
+                    data={CONF_PUMPS: self._updated_pumps},
+                )
+
+        current_flow = self._pumps[self._current_pump_index].get(
+            CONF_PUMP_FLOW_RATE, DEFAULT_FLOW_RATE
+        )
+        current_switch = self._pumps[self._current_pump_index].get(CONF_PUMP_SWITCH, "")
+
+        schema = vol.Schema({
+            vol.Required(CONF_PUMP_FLOW_RATE, default=current_flow): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=5, mode="box"
+                )
+            ),
+        })
+
+        return self.async_show_form(
+            step_id="pumps",
+            data_schema=schema,
+            description_placeholders={
+                "pump_number": str(self._current_pump_index + 1),
+                "total_pumps": str(len(self._pumps)),
+                "pump_switch": current_switch,
+            },
         )
