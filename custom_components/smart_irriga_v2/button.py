@@ -30,7 +30,8 @@ class StartIrrigationButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Start irrigation immediately regardless of the configured mode."""
-        entry_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-        # Allow manual override even if already irrigating
-        entry_data["irrigating"] = False
+        domain_data = self.hass.data.get(DOMAIN, {})
+        entry_data = domain_data.get(self._entry.entry_id)
+        if entry_data is not None:
+            entry_data["irrigating"] = False
         await start_irrigation(self.hass, self._entry)

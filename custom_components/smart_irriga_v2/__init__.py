@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -25,12 +26,21 @@ from .const import (
     DEFAULT_IRRIGATION_DURATION,
     DOMAIN,
     MODE_HUMIDITY,
+    MODE_MANUAL,
     MODE_SCHEDULE,
     PLATFORMS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 _DAY_MAP = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+def _conf(entry: ConfigEntry, key: str, default: Any = None) -> Any:
+    """Return value from options first, then data, then default."""
+    val = entry.options.get(key)
+    if val is None:
+        val = entry.data.get(key)
+    return val if val is not None else default
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -40,7 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    mode = entry.data.get(CONF_ACTIVATION_MODE, "manual")
+    mode = _conf(entry, CONF_ACTIVATION_MODE, MODE_MANUAL)
     if mode == MODE_SCHEDULE:
         _setup_schedule(hass, entry)
     elif mode == MODE_HUMIDITY:
@@ -65,19 +75,31 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def start_irrigation(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Turn on all pumps and schedule auto-stop after the configured duration."""
     entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if entry_data is None or entry_data.get("irrigating"):
+    if entry_data is None:
+        _LOGGER.warning("start_irrigation called but entry_data not found for %s", entry.title)
+        return
+    if entry_data.get("irrigating"):
+        _LOGGER.debug("Irrigation already running for %s, skipping", entry.title)
         return
 
     entry_data["irrigating"] = True
-    duration = int(entry.data.get(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION))
+    duration = int(_conf(entry, CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION))
     pumps = list(entry.options.get(CONF_PUMPS) or entry.data.get(CONF_PUMPS, []))
+
+    if not pumps:
+        _LOGGER.warning("No pumps configured for zone %s", entry.title)
+        entry_data["irrigating"] = False
+        return
 
     for pump in pumps:
         switch_id = pump.get(CONF_PUMP_SWITCH)
         if switch_id:
+            _LOGGER.debug("Turning on switch %s for zone %s", switch_id, entry.title)
             await hass.services.async_call(
-                "switch", "turn_on", {"entity_id": switch_id}
+                "switch", "turn_on", {"entity_id": switch_id}, blocking=True
             )
+        else:
+            _LOGGER.warning("Pump has no switch entity configured: %s", pump)
         entry_data["total_volume"] = (
             entry_data.get("total_volume", 0.0) + pump.get(CONF_PUMP_FLOW_RATE, 0)
         )
@@ -87,7 +109,7 @@ async def start_irrigation(hass: HomeAssistant, entry: ConfigEntry) -> None:
             switch_id = pump.get(CONF_PUMP_SWITCH)
             if switch_id:
                 await hass.services.async_call(
-                    "switch", "turn_off", {"entity_id": switch_id}
+                    "switch", "turn_off", {"entity_id": switch_id}, blocking=True
                 )
         if entry_data is not None:
             entry_data["irrigating"] = False
@@ -103,11 +125,11 @@ async def start_irrigation(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 def _setup_schedule(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register a daily time-based listener to start irrigation."""
-    schedule_time = entry.data.get(CONF_SCHEDULE_TIME, "08:00:00")
-    schedule_days = entry.data.get(CONF_SCHEDULE_DAYS, [])
+    schedule_time = _conf(entry, CONF_SCHEDULE_TIME, "08:00:00")
+    schedule_days = list(_conf(entry, CONF_SCHEDULE_DAYS, []) or [])
 
     try:
-        parts = schedule_time.split(":")
+        parts = str(schedule_time).split(":")
         hour, minute = int(parts[0]), int(parts[1])
     except (ValueError, IndexError, AttributeError):
         _LOGGER.error("Invalid schedule time: %s", schedule_time)
@@ -128,11 +150,11 @@ def _setup_schedule(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 def _setup_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register a state-change listener on the humidity sensor."""
-    sensor_id = entry.data.get(CONF_HUMIDITY_SENSOR)
-    threshold = entry.data.get(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)
+    sensor_id = _conf(entry, CONF_HUMIDITY_SENSOR, None)
+    threshold = float(_conf(entry, CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD))
 
     if not sensor_id:
-        _LOGGER.warning("Humidity mode enabled but no sensor configured")
+        _LOGGER.warning("Humidity mode enabled but no sensor configured for %s", entry.title)
         return
 
     @callback
