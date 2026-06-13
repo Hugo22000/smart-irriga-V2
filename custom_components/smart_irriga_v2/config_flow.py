@@ -99,6 +99,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         min=MIN_FLOW_RATE,
                         max=MAX_FLOW_RATE,
                         step=5,
+                        mode="box",
                     )
                 ),
             }
@@ -108,8 +109,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="pumps",
             data_schema=schema,
             description_placeholders={
-                "pump_number": self._current_pump_index + 1,
-                "total_pumps": self._num_pumps,
+                "pump_number": str(self._current_pump_index + 1),
+                "total_pumps": str(self._num_pumps),
             },
             errors=errors,
         )
