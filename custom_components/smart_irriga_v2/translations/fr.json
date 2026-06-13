@@ -1,4 +1,25 @@
 {
+  "entity": {
+    "sensor": {
+      "next_irrigation": {
+        "name": "Prochain arrosage",
+        "state_attributes": {
+          "activation_mode": {
+            "name": "Mode d'activation",
+            "state": {
+              "manual": "Manuel",
+              "schedule": "Planification",
+              "humidity": "Capteur d'humidité"
+            }
+          },
+          "schedule_time": {"name": "Heure de déclenchement"},
+          "schedule_days": {"name": "Jours planifiés"},
+          "humidity_sensor": {"name": "Capteur d'humidité"},
+          "humidity_threshold": {"name": "Seuil d'humidité (%)"}
+        }
+      }
+    }
+  },
   "config": {
     "step": {
       "user": {
