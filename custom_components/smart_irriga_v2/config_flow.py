@@ -99,7 +99,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         min=MIN_FLOW_RATE,
                         max=MAX_FLOW_RATE,
                         step=5,
-                        unit_of_measurement="ml",
                     )
                 ),
             }
