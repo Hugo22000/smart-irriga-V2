@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Irrigation Zone",
+        "data": {
+          "zone_name": "Zone name",
+          "num_pumps": "Number of pumps"
+        }
+      },
+      "pumps": {
+        "title": "Pump configuration",
+        "description": "Pump {pump_number} of {total_pumps}",
+        "data": {
+          "switch": "Switch entity",
+          "flow_rate": "Flow rate (ml)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pump settings",
+        "data": {
+          "num_pumps": "Number of pumps"
+        }
+      },
+      "pumps": {
+        "title": "Pump configuration",
+        "description": "Pump {pump_number} of {total_pumps}",
+        "data": {
+          "switch": "Switch entity",
+          "flow_rate": "Flow rate (ml)"
+        }
+      }
+    }
+  }
+}
