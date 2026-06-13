@@ -30,7 +30,7 @@ class StartIrrigationButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Turn on all pumps and accumulate the dispensed volume."""
-        pumps = self._entry.data.get(CONF_PUMPS, [])
+        pumps = list(self._entry.options.get(CONF_PUMPS) or self._entry.data.get(CONF_PUMPS, []))
         domain_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
 
         for pump in pumps:

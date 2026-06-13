@@ -17,7 +17,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the switch platform."""
-    pumps = entry.data.get(CONF_PUMPS, [])
+    pumps = list(entry.options.get(CONF_PUMPS) or entry.data.get(CONF_PUMPS, []))
     entities = []
     
     for i, pump in enumerate(pumps):
