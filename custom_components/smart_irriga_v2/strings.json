@@ -1,4 +1,25 @@
 {
+  "entity": {
+    "sensor": {
+      "next_irrigation": {
+        "name": "Next Irrigation",
+        "state_attributes": {
+          "activation_mode": {
+            "name": "Activation mode",
+            "state": {
+              "manual": "Manual",
+              "schedule": "Schedule",
+              "humidity": "Humidity sensor"
+            }
+          },
+          "schedule_time": {"name": "Start time"},
+          "schedule_days": {"name": "Scheduled days"},
+          "humidity_sensor": {"name": "Humidity sensor"},
+          "humidity_threshold": {"name": "Humidity threshold (%)"}
+        }
+      }
+    }
+  },
   "config": {
     "step": {
       "user": {
