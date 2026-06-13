@@ -3,9 +3,13 @@
     "step": {
       "user": {
         "title": "Irrigation Zone",
+        "description": "Configure the name of your irrigation zone and the number of pumps.",
         "data": {
           "zone_name": "Zone name",
           "num_pumps": "Number of pumps"
+        },
+        "data_description": {
+          "num_pumps": "Number of pumps to configure for this zone (maximum 3)"
         }
       },
       "pumps": {
