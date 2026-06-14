@@ -12,6 +12,7 @@ CONF_NUM_PUMPS = "num_pumps"
 CONF_PUMPS = "pumps"
 CONF_PUMP_SWITCH = "switch"
 CONF_PUMP_FLOW_RATE = "flow_rate"
+CONF_PUMP_HUMIDITY_SENSOR = "pump_humidity_sensor"
 
 # Default values
 DEFAULT_ZONE_NAME = "My Irrigation Zone"

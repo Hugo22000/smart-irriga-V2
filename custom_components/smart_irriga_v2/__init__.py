@@ -24,6 +24,7 @@ from .const import (
     CONF_NUM_PUMPS,
     CONF_PUMPS,
     CONF_PUMP_FLOW_RATE,
+    CONF_PUMP_HUMIDITY_SENSOR,
     CONF_PUMP_SWITCH,
     CONF_SCHEDULE_DAYS,
     CONF_SCHEDULE_TIME,
@@ -66,6 +67,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"total_volume": 0.0, "irrigating": False}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Per-pump humidity sensors work regardless of zone mode
+    _setup_per_pump_humidity(hass, entry)
 
     mode = _conf(entry, CONF_ACTIVATION_MODE, MODE_MANUAL)
     if mode == MODE_SCHEDULE:
@@ -196,7 +200,7 @@ def _setup_schedule(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 def _setup_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Register a state-change listener on the humidity sensor."""
+    """Register a zone-level state-change listener on the humidity sensor."""
     sensor_id = _conf(entry, CONF_HUMIDITY_SENSOR, None)
     threshold = float(_conf(entry, CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD))
 
@@ -218,3 +222,56 @@ def _setup_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
     cancel = async_track_state_change_event(hass, [sensor_id], _on_state_change)
     entry.async_on_unload(cancel)
     _LOGGER.debug("Humidity listener registered on %s (threshold %s%%)", sensor_id, threshold)
+
+
+def _setup_per_pump_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Register independent humidity listeners for pumps that have a per-pump sensor."""
+    pumps = list(entry.options.get(CONF_PUMPS) or entry.data.get(CONF_PUMPS, []))
+    threshold = float(_conf(entry, CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD))
+
+    for pump in pumps:
+        sensor_id = pump.get(CONF_PUMP_HUMIDITY_SENSOR)
+        if not sensor_id:
+            continue
+
+        def _make_listener(bound_pump: dict):
+            @callback
+            def _on_pump_humidity_change(event) -> None:
+                new_state = event.data.get("new_state")
+                if new_state is None or new_state.state in ("unavailable", "unknown", ""):
+                    return
+                try:
+                    if float(new_state.state) < threshold:
+                        hass.async_create_task(_start_single_pump(hass, entry, bound_pump))
+                except (ValueError, TypeError):
+                    pass
+            return _on_pump_humidity_change
+
+        cancel = async_track_state_change_event(hass, [sensor_id], _make_listener(pump))
+        entry.async_on_unload(cancel)
+        _LOGGER.debug(
+            "Per-pump humidity listener on %s for switch %s (zone %s)",
+            sensor_id, pump.get(CONF_PUMP_SWITCH), entry.title,
+        )
+
+
+async def _start_single_pump(hass: HomeAssistant, entry: ConfigEntry, pump: dict) -> None:
+    """Turn on a single pump and schedule auto-stop after the configured duration."""
+    switch_id = pump.get(CONF_PUMP_SWITCH)
+    if not switch_id:
+        return
+
+    duration = int(_conf(entry, CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION))
+
+    _LOGGER.debug("Starting single pump %s for zone %s", switch_id, entry.title)
+    await hass.services.async_call("switch", "turn_on", {"entity_id": switch_id}, blocking=True)
+
+    async def _stop_pump() -> None:
+        await hass.services.async_call("switch", "turn_off", {"entity_id": switch_id}, blocking=True)
+        _LOGGER.debug("Single pump %s stopped for zone %s", switch_id, entry.title)
+
+    @callback
+    def _stop_callback(now) -> None:
+        hass.async_create_task(_stop_pump())
+
+    async_call_later(hass, duration, _stop_callback)
