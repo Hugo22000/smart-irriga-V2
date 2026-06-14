@@ -38,7 +38,11 @@
         "description": "Pompe {pump_number} sur {total_pumps}",
         "data": {
           "switch": "Interrupteur",
-          "flow_rate": "Débit (ml)"
+          "flow_rate": "Débit (ml)",
+          "pump_humidity_sensor": "Capteur d'humidité (optionnel)"
+        },
+        "data_description": {
+          "pump_humidity_sensor": "Associer un capteur d'humidité à cette pompe — déclenche cette pompe indépendamment quand le sol est sec"
         }
       },
       "mode": {
@@ -86,7 +90,11 @@
         "description": "Pompe {pump_number} sur {total_pumps}",
         "data": {
           "switch": "Interrupteur",
-          "flow_rate": "Débit (ml)"
+          "flow_rate": "Débit (ml)",
+          "pump_humidity_sensor": "Capteur d'humidité (optionnel)"
+        },
+        "data_description": {
+          "pump_humidity_sensor": "Associer un capteur d'humidité à cette pompe — déclenche cette pompe indépendamment quand le sol est sec"
         }
       },
       "schedule": {

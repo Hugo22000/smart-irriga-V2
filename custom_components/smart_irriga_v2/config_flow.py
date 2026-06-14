@@ -17,6 +17,7 @@ from .const import (
     CONF_IRRIGATION_DURATION,
     CONF_NUM_PUMPS,
     CONF_PUMP_FLOW_RATE,
+    CONF_PUMP_HUMIDITY_SENSOR,
     CONF_PUMP_SWITCH,
     CONF_PUMPS,
     CONF_SCHEDULE_DAYS,
@@ -105,10 +106,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            self._pumps_config.append({
+            pump_data: dict[str, Any] = {
                 CONF_PUMP_SWITCH: user_input[CONF_PUMP_SWITCH],
                 CONF_PUMP_FLOW_RATE: int(user_input[CONF_PUMP_FLOW_RATE]),
-            })
+            }
+            if user_input.get(CONF_PUMP_HUMIDITY_SENSOR):
+                pump_data[CONF_PUMP_HUMIDITY_SENSOR] = user_input[CONF_PUMP_HUMIDITY_SENSOR]
+            self._pumps_config.append(pump_data)
             self._current_pump_index += 1
             if self._current_pump_index >= self._num_pumps:
                 return await self.async_step_mode()
@@ -121,6 +125,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 selector.NumberSelectorConfig(
                     min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=5, mode="box"
                 )
+            ),
+            vol.Optional(CONF_PUMP_HUMIDITY_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
             ),
         })
 
@@ -292,10 +299,13 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         if user_input is not None:
-            self._updated_pumps.append({
+            pump_data: dict[str, Any] = {
                 CONF_PUMP_SWITCH: user_input[CONF_PUMP_SWITCH],
                 CONF_PUMP_FLOW_RATE: int(user_input[CONF_PUMP_FLOW_RATE]),
-            })
+            }
+            if user_input.get(CONF_PUMP_HUMIDITY_SENSOR):
+                pump_data[CONF_PUMP_HUMIDITY_SENSOR] = user_input[CONF_PUMP_HUMIDITY_SENSOR]
+            self._updated_pumps.append(pump_data)
             self._current_pump_index += 1
             if self._current_pump_index >= self._num_pumps:
                 if self._mode == MODE_SCHEDULE:
@@ -311,11 +321,17 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
         )
         current_switch = existing.get(CONF_PUMP_SWITCH)
         current_flow = existing.get(CONF_PUMP_FLOW_RATE, DEFAULT_FLOW_RATE)
+        current_humidity_sensor = existing.get(CONF_PUMP_HUMIDITY_SENSOR)
 
         switch_field = (
             vol.Required(CONF_PUMP_SWITCH, default=current_switch)
             if current_switch
             else vol.Required(CONF_PUMP_SWITCH)
+        )
+        humidity_field = (
+            vol.Optional(CONF_PUMP_HUMIDITY_SENSOR, default=current_humidity_sensor)
+            if current_humidity_sensor
+            else vol.Optional(CONF_PUMP_HUMIDITY_SENSOR)
         )
 
         schema = vol.Schema({
@@ -326,6 +342,9 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
                 selector.NumberSelectorConfig(
                     min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=5, mode="box"
                 )
+            ),
+            humidity_field: selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
             ),
         })
 
