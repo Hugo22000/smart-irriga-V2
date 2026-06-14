@@ -48,7 +48,7 @@ _SERVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_SCHEDULE_DAYS): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_HUMIDITY_SENSOR): cv.string,
     vol.Optional(CONF_HUMIDITY_THRESHOLD): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
-    vol.Optional(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
+    vol.Optional(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
 })
 
 
