@@ -20,6 +20,7 @@ from .const import (
     CONF_PUMP_SWITCH,
     CONF_SCHEDULE_DAYS,
     CONF_SCHEDULE_TIME,
+    CONF_ZONE_ACTIVE,
     DEFAULT_HUMIDITY_THRESHOLD,
     DEFAULT_IRRIGATION_DURATION,
     DOMAIN,
@@ -141,6 +142,7 @@ class IrrigationScheduleSensor(SensorEntity):
             "irrigating":          irrigating,
             "pump_switches":       switches,
             "total_flow_rate":     float(total) if switches else None,
+            "zone_active":         self._conf(CONF_ZONE_ACTIVE, True),
         }
 
 

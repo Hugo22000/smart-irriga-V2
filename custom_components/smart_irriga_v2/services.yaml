@@ -26,6 +26,12 @@ set_zone_options:
               label: Planifié
             - value: humidity
               label: Capteur d'humidité
+    zone_active:
+      name: Zone active
+      description: Active ou désactive l'automatisation de la zone (le bouton manuel fonctionne toujours).
+      required: false
+      selector:
+        boolean:
     schedule_time:
       name: Heure de planification
       description: Heure de déclenchement au format HH:MM ou HH:MM:SS.
