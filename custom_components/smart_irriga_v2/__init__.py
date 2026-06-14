@@ -28,6 +28,7 @@ from .const import (
     CONF_PUMP_SWITCH,
     CONF_SCHEDULE_DAYS,
     CONF_SCHEDULE_TIME,
+    CONF_ZONE_ACTIVE,
     CONF_ZONE_NAME,
     DEFAULT_HUMIDITY_THRESHOLD,
     DEFAULT_IRRIGATION_DURATION,
@@ -46,6 +47,7 @@ _SERVICE_SCHEMA = vol.Schema({
     vol.Required("entry_id"): cv.string,
     vol.Required(CONF_ACTIVATION_MODE): vol.In([MODE_MANUAL, MODE_SCHEDULE, MODE_HUMIDITY]),
     vol.Required(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
+    vol.Optional(CONF_ZONE_ACTIVE): cv.boolean,
     vol.Optional(CONF_SCHEDULE_TIME): cv.string,
     vol.Optional(CONF_SCHEDULE_DAYS): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_HUMIDITY_SENSOR): cv.string,
@@ -89,6 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             for key in [
                 CONF_ACTIVATION_MODE, CONF_SCHEDULE_TIME, CONF_SCHEDULE_DAYS,
                 CONF_HUMIDITY_SENSOR, CONF_HUMIDITY_THRESHOLD, CONF_IRRIGATION_DURATION,
+                CONF_ZONE_ACTIVE,
             ]:
                 if key in call.data:
                     current[key] = call.data[key]
@@ -190,6 +193,8 @@ def _setup_schedule(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     @callback
     def _on_time(now) -> None:
+        if not _conf(entry, CONF_ZONE_ACTIVE, True):
+            return
         if day_numbers and now.weekday() not in day_numbers:
             return
         hass.async_create_task(start_irrigation(hass, entry))
@@ -210,6 +215,8 @@ def _setup_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     @callback
     def _on_state_change(event) -> None:
+        if not _conf(entry, CONF_ZONE_ACTIVE, True):
+            return
         new_state = event.data.get("new_state")
         if new_state is None or new_state.state in ("unavailable", "unknown", ""):
             return
@@ -237,6 +244,8 @@ def _setup_per_pump_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
         def _make_listener(bound_pump: dict):
             @callback
             def _on_pump_humidity_change(event) -> None:
+                if not _conf(entry, CONF_ZONE_ACTIVE, True):
+                    return
                 new_state = event.data.get("new_state")
                 if new_state is None or new_state.state in ("unavailable", "unknown", ""):
                     return

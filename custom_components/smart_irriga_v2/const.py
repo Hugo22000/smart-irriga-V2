@@ -41,5 +41,8 @@ SENSOR_WATER_VOLUME = "water_volume"
 SENSOR_NEXT_IRRIGATION = "next_irrigation"
 BUTTON_START_IRRIGATION = "start_irrigation"
 
+# Zone state
+CONF_ZONE_ACTIVE = "zone_active"
+
 # Services
 SERVICE_SET_ZONE_OPTIONS = "set_zone_options"
