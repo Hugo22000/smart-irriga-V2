@@ -16,7 +16,7 @@ set_zone_options:
     activation_mode:
       name: Mode d'activation
       description: Mode de déclenchement de l'arrosage.
-      required: false
+      required: true
       selector:
         select:
           options:
@@ -69,7 +69,7 @@ set_zone_options:
     irrigation_duration:
       name: Durée d'arrosage (s)
       description: Durée de l'arrosage en secondes (minimum 1 s).
-      required: false
+      required: true
       selector:
         number:
           min: 1
