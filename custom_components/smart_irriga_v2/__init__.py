@@ -42,13 +42,13 @@ _LOGGER = logging.getLogger(__name__)
 _DAY_MAP = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 
 _SERVICE_SCHEMA = vol.Schema({
-    vol.Required(CONF_ZONE_NAME): cv.string,
+    vol.Required("entry_id"): cv.string,
     vol.Optional(CONF_ACTIVATION_MODE): vol.In([MODE_MANUAL, MODE_SCHEDULE, MODE_HUMIDITY]),
-    vol.Optional(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
     vol.Optional(CONF_SCHEDULE_TIME): cv.string,
     vol.Optional(CONF_SCHEDULE_DAYS): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_HUMIDITY_SENSOR): cv.entity_id,
+    vol.Optional(CONF_HUMIDITY_SENSOR): cv.string,
     vol.Optional(CONF_HUMIDITY_THRESHOLD): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+    vol.Optional(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
 })
 
 
@@ -73,33 +73,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     elif mode == MODE_HUMIDITY:
         _setup_humidity(hass, entry)
 
-    # Register the service once (shared across all zones)
+    # Register service once for the whole domain
     if not hass.services.has_service(DOMAIN, SERVICE_SET_ZONE_OPTIONS):
         async def _handle_set_zone_options(call: ServiceCall) -> None:
-            zone_name = call.data[CONF_ZONE_NAME]
-            target_entry = next(
-                (e for e in hass.config_entries.async_entries(DOMAIN) if e.title == zone_name),
-                None,
-            )
-            if target_entry is None:
-                raise HomeAssistantError(f"Zone '{zone_name}' introuvable")
-
-            # Merge current options/data with the requested changes
-            current: dict[str, Any] = {
-                **dict(target_entry.data),
-                **dict(target_entry.options),
-            }
-            updates = {k: v for k, v in call.data.items() if k != CONF_ZONE_NAME}
-            current.update(updates)
-
+            target_entry = hass.config_entries.async_get_entry(call.data["entry_id"])
+            if not target_entry or target_entry.domain != DOMAIN:
+                raise HomeAssistantError(
+                    f"Zone introuvable : entry_id={call.data['entry_id']}"
+                )
+            current = dict(target_entry.options or target_entry.data)
+            for key in [
+                CONF_ACTIVATION_MODE, CONF_SCHEDULE_TIME, CONF_SCHEDULE_DAYS,
+                CONF_HUMIDITY_SENSOR, CONF_HUMIDITY_THRESHOLD, CONF_IRRIGATION_DURATION,
+            ]:
+                if key in call.data:
+                    current[key] = call.data[key]
             hass.config_entries.async_update_entry(target_entry, options=current)
-            _LOGGER.debug("Zone '%s' options updated: %s", zone_name, updates)
+            _LOGGER.debug(
+                "set_zone_options applied to %s: %s", target_entry.title, call.data
+            )
 
         hass.services.async_register(
-            DOMAIN,
-            SERVICE_SET_ZONE_OPTIONS,
-            _handle_set_zone_options,
-            schema=_SERVICE_SCHEMA,
+            DOMAIN, SERVICE_SET_ZONE_OPTIONS, _handle_set_zone_options, schema=_SERVICE_SCHEMA
         )
 
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
@@ -118,8 +113,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    # Remove service when the last zone is unloaded
-    if not hass.config_entries.async_entries(DOMAIN):
+    if unloaded and not hass.data.get(DOMAIN):
         hass.services.async_remove(DOMAIN, SERVICE_SET_ZONE_OPTIONS)
 
     return unloaded
