@@ -1,0 +1,86 @@
+set_zone_options:
+  name: Set zone options
+  description: >
+    Update the configuration of an irrigation zone (mode, duration, schedule, humidity).
+    Triggers an automatic reload of the zone.
+  fields:
+    zone_name:
+      name: Zone name
+      description: Name of the irrigation zone to configure (matches the zone title in HA).
+      required: true
+      example: "Garden"
+      selector:
+        text:
+    activation_mode:
+      name: Activation mode
+      description: "manual: button only. schedule: time-based. humidity: sensor-based."
+      required: false
+      example: "schedule"
+      selector:
+        select:
+          options:
+            - manual
+            - schedule
+            - humidity
+    irrigation_duration:
+      name: Duration (seconds)
+      description: How long pumps run before auto-stop (10–3600 s).
+      required: false
+      example: 300
+      selector:
+        number:
+          min: 10
+          max: 3600
+          step: 10
+          unit_of_measurement: s
+          mode: box
+    schedule_time:
+      name: Schedule time
+      description: Time to trigger irrigation when mode is schedule (HH:MM:SS).
+      required: false
+      example: "07:30:00"
+      selector:
+        time:
+    schedule_days:
+      name: Schedule days
+      description: Days of the week to trigger irrigation (mon, tue, wed, thu, fri, sat, sun).
+      required: false
+      example: ["mon", "wed", "fri"]
+      selector:
+        select:
+          multiple: true
+          options:
+            - value: mon
+              label: Monday
+            - value: tue
+              label: Tuesday
+            - value: wed
+              label: Wednesday
+            - value: thu
+              label: Thursday
+            - value: fri
+              label: Friday
+            - value: sat
+              label: Saturday
+            - value: sun
+              label: Sunday
+    humidity_sensor:
+      name: Humidity sensor
+      description: Entity ID of the soil humidity sensor (mode humidity only).
+      required: false
+      example: "sensor.garden_soil_moisture"
+      selector:
+        entity:
+          domain: sensor
+    humidity_threshold:
+      name: Humidity threshold (%)
+      description: Irrigation starts when humidity drops below this value.
+      required: false
+      example: 40
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 5
+          unit_of_measurement: "%"
+          mode: box
