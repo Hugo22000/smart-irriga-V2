@@ -125,23 +125,23 @@ class IrrigationScheduleSensor(SensorEntity):
         except Exception:
             irrigating = False
 
-        attrs: dict = {
-            "activation_mode":    mode,
-            "entry_id":           self._entry.entry_id,
+        days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
+        switches = [p.get(CONF_PUMP_SWITCH) for p in pumps if p.get(CONF_PUMP_SWITCH)]
+        total = sum(p.get(CONF_PUMP_FLOW_RATE, 0) for p in pumps)
+
+        return {
+            "activation_mode":     mode,
+            "entry_id":            self._entry.entry_id,
+            "schedule_time":       self._conf(CONF_SCHEDULE_TIME, None),
+            "schedule_days":       [_DAY_LABELS.get(d, d) for d in days],
+            "schedule_days_raw":   days,
+            "humidity_sensor":     self._conf(CONF_HUMIDITY_SENSOR, None),
+            "humidity_threshold":  self._conf(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD),
             "irrigation_duration": self._conf(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION),
-            "irrigating":         irrigating,
-            "pump_switches":      [p.get(CONF_PUMP_SWITCH) for p in pumps if p.get(CONF_PUMP_SWITCH)],
-            "total_flow_rate":    sum(p.get(CONF_PUMP_FLOW_RATE, 0) for p in pumps),
+            "irrigating":          irrigating,
+            "pump_switches":       switches,
+            "total_flow_rate":     float(total) if switches else None,
         }
-        if mode == MODE_SCHEDULE:
-            days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
-            attrs["schedule_time"]     = self._conf(CONF_SCHEDULE_TIME, "")
-            attrs["schedule_days"]     = [_DAY_LABELS.get(d, d) for d in days]
-            attrs["schedule_days_raw"] = days
-        elif mode == MODE_HUMIDITY:
-            attrs["humidity_sensor"]    = self._conf(CONF_HUMIDITY_SENSOR, "")
-            attrs["humidity_threshold"] = self._conf(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)
-        return attrs
 
 
 def _next_irrigation_dt(schedule_time: str, schedule_days: list[str]) -> datetime | None:

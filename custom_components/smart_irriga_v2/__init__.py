@@ -44,12 +44,12 @@ _DAY_MAP = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6
 
 _SERVICE_SCHEMA = vol.Schema({
     vol.Required("entry_id"): cv.string,
-    vol.Optional(CONF_ACTIVATION_MODE): vol.In([MODE_MANUAL, MODE_SCHEDULE, MODE_HUMIDITY]),
+    vol.Required(CONF_ACTIVATION_MODE): vol.In([MODE_MANUAL, MODE_SCHEDULE, MODE_HUMIDITY]),
+    vol.Required(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
     vol.Optional(CONF_SCHEDULE_TIME): cv.string,
     vol.Optional(CONF_SCHEDULE_DAYS): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_HUMIDITY_SENSOR): cv.string,
     vol.Optional(CONF_HUMIDITY_THRESHOLD): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
-    vol.Optional(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
 })
 
 
