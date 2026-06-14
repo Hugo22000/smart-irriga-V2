@@ -14,12 +14,14 @@ from .const import (
     CONF_ACTIVATION_MODE,
     CONF_HUMIDITY_SENSOR,
     CONF_HUMIDITY_THRESHOLD,
+    CONF_IRRIGATION_DURATION,
     CONF_PUMPS,
     CONF_PUMP_FLOW_RATE,
     CONF_PUMP_SWITCH,
     CONF_SCHEDULE_DAYS,
     CONF_SCHEDULE_TIME,
     DEFAULT_HUMIDITY_THRESHOLD,
+    DEFAULT_IRRIGATION_DURATION,
     DOMAIN,
     MODE_HUMIDITY,
     MODE_MANUAL,
@@ -115,11 +117,15 @@ class IrrigationScheduleSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         mode = self._conf(CONF_ACTIVATION_MODE, MODE_MANUAL)
-        attrs: dict = {"activation_mode": mode}
+        attrs: dict = {
+            "activation_mode": mode,
+            "irrigation_duration": int(self._conf(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION)),
+        }
         if mode == MODE_SCHEDULE:
             days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
             attrs["schedule_time"] = self._conf(CONF_SCHEDULE_TIME, "")
             attrs["schedule_days"] = [_DAY_LABELS.get(d, d) for d in days]
+            attrs["schedule_days_raw"] = days
         elif mode == MODE_HUMIDITY:
             attrs["humidity_sensor"] = self._conf(CONF_HUMIDITY_SENSOR, "")
             attrs["humidity_threshold"] = self._conf(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)
