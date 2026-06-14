@@ -119,6 +119,7 @@ class IrrigationScheduleSensor(SensorEntity):
         mode = self._conf(CONF_ACTIVATION_MODE, MODE_MANUAL)
         attrs: dict = {
             "activation_mode": mode,
+            "entry_id": self._entry.entry_id,
             "irrigation_duration": int(self._conf(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION)),
         }
         if mode == MODE_SCHEDULE:
