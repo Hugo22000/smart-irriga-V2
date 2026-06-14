@@ -117,18 +117,29 @@ class IrrigationScheduleSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         mode = self._conf(CONF_ACTIVATION_MODE, MODE_MANUAL)
+        pumps = list(self._conf(CONF_PUMPS, []) or [])
+
+        try:
+            entry_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+            irrigating = entry_data.get("irrigating", False)
+        except Exception:
+            irrigating = False
+
         attrs: dict = {
-            "activation_mode": mode,
-            "entry_id": self._entry.entry_id,
-            "irrigation_duration": int(self._conf(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION)),
+            "activation_mode":    mode,
+            "entry_id":           self._entry.entry_id,
+            "irrigation_duration": self._conf(CONF_IRRIGATION_DURATION, DEFAULT_IRRIGATION_DURATION),
+            "irrigating":         irrigating,
+            "pump_switches":      [p.get(CONF_PUMP_SWITCH) for p in pumps if p.get(CONF_PUMP_SWITCH)],
+            "total_flow_rate":    sum(p.get(CONF_PUMP_FLOW_RATE, 0) for p in pumps),
         }
         if mode == MODE_SCHEDULE:
             days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
-            attrs["schedule_time"] = self._conf(CONF_SCHEDULE_TIME, "")
-            attrs["schedule_days"] = [_DAY_LABELS.get(d, d) for d in days]
+            attrs["schedule_time"]     = self._conf(CONF_SCHEDULE_TIME, "")
+            attrs["schedule_days"]     = [_DAY_LABELS.get(d, d) for d in days]
             attrs["schedule_days_raw"] = days
         elif mode == MODE_HUMIDITY:
-            attrs["humidity_sensor"] = self._conf(CONF_HUMIDITY_SENSOR, "")
+            attrs["humidity_sensor"]    = self._conf(CONF_HUMIDITY_SENSOR, "")
             attrs["humidity_threshold"] = self._conf(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)
         return attrs
 
