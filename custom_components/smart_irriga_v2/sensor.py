@@ -129,6 +129,11 @@ class IrrigationScheduleSensor(SensorEntity):
         days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
         switches = [p.get(CONF_PUMP_SWITCH) for p in pumps if p.get(CONF_PUMP_SWITCH)]
         total = sum(p.get(CONF_PUMP_FLOW_RATE, 0) for p in pumps)
+        pump_states = [self.hass.states.get(sw) for sw in switches]
+        pumps_available = (
+            all(s is not None and s.state != "unavailable" for s in pump_states)
+            if switches else None
+        )
 
         return {
             "activation_mode":     mode,
@@ -142,6 +147,7 @@ class IrrigationScheduleSensor(SensorEntity):
             "irrigating":          irrigating,
             "pump_switches":       switches,
             "total_flow_rate":     float(total) if switches else None,
+            "pumps_available":     pumps_available,
             "zone_active":         self._conf(CONF_ZONE_ACTIVE, True),
         }
 
