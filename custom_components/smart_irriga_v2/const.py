@@ -40,6 +40,7 @@ DEFAULT_HUMIDITY_THRESHOLD = 40  # %
 SENSOR_WATER_VOLUME = "water_volume"
 SENSOR_NEXT_IRRIGATION = "next_irrigation"
 BUTTON_START_IRRIGATION = "start_irrigation"
+BUTTON_STOP_IRRIGATION = "stop_irrigation"
 
 # Zone state
 CONF_ZONE_ACTIVE = "zone_active"
