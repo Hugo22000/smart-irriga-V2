@@ -3,7 +3,7 @@
   "name": "Smart Irrigation V2",
   "documentation": "https://github.com/Hugo22000/smart-irriga-V2",
   "issue_tracker": "https://github.com/Hugo22000/smart-irriga-V2/issues",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "config_flow": true,
   "iot_class": "local_push",
   "requirements": ["voluptuous>=0.14.0"],
