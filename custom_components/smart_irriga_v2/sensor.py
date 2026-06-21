@@ -110,6 +110,8 @@ class IrrigationScheduleSensor(SensorEntity):
     def native_value(self) -> datetime | None:
         if self._conf(CONF_ACTIVATION_MODE, MODE_MANUAL) != MODE_SCHEDULE:
             return None
+        if not self._conf(CONF_ZONE_ACTIVE, True):
+            return None
         schedule_time = self._conf(CONF_SCHEDULE_TIME, "08:00:00")
         schedule_days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
         return _next_irrigation_dt(schedule_time, schedule_days)
@@ -126,6 +128,7 @@ class IrrigationScheduleSensor(SensorEntity):
             irrigating = False
 
         days = list(self._conf(CONF_SCHEDULE_DAYS, []) or [])
+        next_dt = _next_irrigation_dt(self._conf(CONF_SCHEDULE_TIME, ""), days)
         switches = [p.get(CONF_PUMP_SWITCH) for p in pumps if p.get(CONF_PUMP_SWITCH)]
         total = sum(p.get(CONF_PUMP_FLOW_RATE, 0) for p in pumps)
         pump_states = [self.hass.states.get(sw) for sw in switches]
@@ -148,6 +151,7 @@ class IrrigationScheduleSensor(SensorEntity):
             "total_flow_rate":     float(total) if switches else None,
             "pumps_available":     pumps_available,
             "zone_active":         self._conf(CONF_ZONE_ACTIVE, True),
+            "next_irrigation":     next_dt.isoformat() if next_dt else None,
         }
 
 
