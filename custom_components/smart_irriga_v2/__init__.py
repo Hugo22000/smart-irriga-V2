@@ -182,28 +182,37 @@ async def start_irrigation(hass: HomeAssistant, entry: ConfigEntry) -> None:
 def _setup_schedule(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register a daily time-based listener to start irrigation."""
     schedule_time = _conf(entry, CONF_SCHEDULE_TIME, "08:00:00")
-    schedule_days = list(_conf(entry, CONF_SCHEDULE_DAYS, []) or [])
 
     try:
         parts = str(schedule_time).split(":")
         hour, minute = int(parts[0]), int(parts[1])
     except (ValueError, IndexError, AttributeError):
-        _LOGGER.error("Invalid schedule time: %s", schedule_time)
+        _LOGGER.error("Invalid schedule time '%s' for zone %s", schedule_time, entry.title)
         return
-
-    day_numbers = {_DAY_MAP[d] for d in schedule_days if d in _DAY_MAP}
 
     @callback
     def _on_time(now) -> None:
         if not _conf(entry, CONF_ZONE_ACTIVE, True):
+            _LOGGER.debug("Schedule fired but zone %s is inactive, skipping", entry.title)
             return
+        # Read days dynamically so card changes without reload are picked up
+        current_days = list(_conf(entry, CONF_SCHEDULE_DAYS, []) or [])
+        day_numbers = {_DAY_MAP[d] for d in current_days if d in _DAY_MAP}
         if day_numbers and now.weekday() not in day_numbers:
+            _LOGGER.debug(
+                "Schedule fired for %s but today (%s) not in configured days %s",
+                entry.title, now.strftime("%A"), current_days,
+            )
             return
+        _LOGGER.info("Scheduled irrigation starting for zone %s at %s", entry.title, now.strftime("%H:%M"))
         hass.async_create_task(start_irrigation(hass, entry))
 
     cancel = async_track_time_change(hass, _on_time, hour=hour, minute=minute, second=0)
     entry.async_on_unload(cancel)
-    _LOGGER.debug("Schedule listener registered at %02d:%02d for %s", hour, minute, entry.title)
+    _LOGGER.info(
+        "Schedule listener registered at %02d:%02d for zone %s (days: %s)",
+        hour, minute, entry.title, _conf(entry, CONF_SCHEDULE_DAYS, []),
+    )
 
 
 def _setup_humidity(hass: HomeAssistant, entry: ConfigEntry) -> None:
