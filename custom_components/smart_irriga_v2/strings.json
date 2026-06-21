@@ -38,7 +38,7 @@
         "description": "Pump {pump_number} of {total_pumps}",
         "data": {
           "switch": "Switch entity",
-          "flow_rate": "Flow rate (ml)",
+          "flow_rate": "Flow rate (cL/min)",
           "pump_humidity_sensor": "Humidity sensor (optional)"
         },
         "data_description": {
@@ -83,7 +83,7 @@
         "description": "Pump {pump_number} of {total_pumps}",
         "data": {
           "switch": "Switch entity",
-          "flow_rate": "Flow rate (ml)",
+          "flow_rate": "Flow rate (cL/min)",
           "pump_humidity_sensor": "Humidity sensor (optional)"
         },
         "data_description": {

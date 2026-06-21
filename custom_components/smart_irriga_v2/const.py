@@ -17,9 +17,9 @@ CONF_PUMP_HUMIDITY_SENSOR = "pump_humidity_sensor"
 # Default values
 DEFAULT_ZONE_NAME = "My Irrigation Zone"
 DEFAULT_NUM_PUMPS = 1
-MIN_FLOW_RATE = 5  # ml
-MAX_FLOW_RATE = 300  # ml
-DEFAULT_FLOW_RATE = 100  # ml
+MIN_FLOW_RATE = 5  # cL/min
+MAX_FLOW_RATE = 300  # cL/min
+DEFAULT_FLOW_RATE = 100  # cL/min
 
 # Activation modes
 CONF_ACTIVATION_MODE = "activation_mode"
