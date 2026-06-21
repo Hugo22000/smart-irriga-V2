@@ -167,13 +167,15 @@ async def start_irrigation(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 )
         if entry_data is not None:
             entry_data["irrigating"] = False
+            entry_data.pop("stop_cancel", None)
         _LOGGER.debug("Irrigation stopped for %s", entry.title)
 
     @callback
     def _stop_callback(now) -> None:
         hass.async_create_task(_stop_pumps())
 
-    async_call_later(hass, duration, _stop_callback)
+    cancel = async_call_later(hass, duration, _stop_callback)
+    entry_data["stop_cancel"] = cancel
     _LOGGER.debug("Irrigation started for %s (%ss)", entry.title, duration)
 
 
