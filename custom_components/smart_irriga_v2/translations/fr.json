@@ -38,7 +38,7 @@
         "description": "Pompe {pump_number} sur {total_pumps}",
         "data": {
           "switch": "Interrupteur",
-          "flow_rate": "Débit (cL/min)",
+          "flow_rate": "Débit (Cl/min)",
           "pump_humidity_sensor": "Capteur d'humidité (optionnel)"
         },
         "data_description": {
@@ -90,7 +90,7 @@
         "description": "Pompe {pump_number} sur {total_pumps}",
         "data": {
           "switch": "Interrupteur",
-          "flow_rate": "Débit (cL/min)",
+          "flow_rate": "Débit (Cl/min)",
           "pump_humidity_sensor": "Capteur d'humidité (optionnel)"
         },
         "data_description": {

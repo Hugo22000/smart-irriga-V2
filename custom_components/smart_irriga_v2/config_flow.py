@@ -108,7 +108,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             pump_data: dict[str, Any] = {
                 CONF_PUMP_SWITCH: user_input[CONF_PUMP_SWITCH],
-                CONF_PUMP_FLOW_RATE: int(user_input[CONF_PUMP_FLOW_RATE]),
+                CONF_PUMP_FLOW_RATE: round(float(user_input[CONF_PUMP_FLOW_RATE]), 2),
             }
             if user_input.get(CONF_PUMP_HUMIDITY_SENSOR):
                 pump_data[CONF_PUMP_HUMIDITY_SENSOR] = user_input[CONF_PUMP_HUMIDITY_SENSOR]
@@ -123,7 +123,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             vol.Required(CONF_PUMP_FLOW_RATE, default=DEFAULT_FLOW_RATE): selector.NumberSelector(
                 selector.NumberSelectorConfig(
-                    min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=5, mode="box"
+                    min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=0.01, mode="box"
                 )
             ),
             vol.Optional(CONF_PUMP_HUMIDITY_SENSOR): selector.EntitySelector(
@@ -301,7 +301,7 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             pump_data: dict[str, Any] = {
                 CONF_PUMP_SWITCH: user_input[CONF_PUMP_SWITCH],
-                CONF_PUMP_FLOW_RATE: int(user_input[CONF_PUMP_FLOW_RATE]),
+                CONF_PUMP_FLOW_RATE: round(float(user_input[CONF_PUMP_FLOW_RATE]), 2),
             }
             if user_input.get(CONF_PUMP_HUMIDITY_SENSOR):
                 pump_data[CONF_PUMP_HUMIDITY_SENSOR] = user_input[CONF_PUMP_HUMIDITY_SENSOR]
@@ -340,7 +340,7 @@ class PumpOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Required(CONF_PUMP_FLOW_RATE, default=current_flow): selector.NumberSelector(
                 selector.NumberSelectorConfig(
-                    min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=5, mode="box"
+                    min=MIN_FLOW_RATE, max=MAX_FLOW_RATE, step=0.01, mode="box"
                 )
             ),
             humidity_field: selector.EntitySelector(
