@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -61,7 +60,7 @@ class WaterVolumeSensor(SensorEntity):
         self._attr_name = f"{entry.title} Water Volume"
         self._attr_unique_id = f"{entry.entry_id}_{SENSOR_WATER_VOLUME}"
         self._attr_native_value = 0.0
-        self._attr_native_unit_of_measurement = UnitOfVolume.MILLILITERS
+        self._attr_native_unit_of_measurement = "cL"
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_icon = "mdi:water"
         self._last_update: datetime = datetime.now()
@@ -86,7 +85,7 @@ class WaterVolumeSensor(SensorEntity):
             if switch_id:
                 state = self.hass.states.get(switch_id)
                 if state and state.state == "on":
-                    self._attr_native_value += flow_rate * elapsed_seconds
+                    self._attr_native_value += flow_rate / 60.0 * elapsed_seconds
 
         domain_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id)
         if domain_data is not None:
