@@ -104,7 +104,10 @@ class IrrigationScheduleSensor(SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{SENSOR_NEXT_IRRIGATION}"
 
     def _conf(self, key: str, default):
-        return self._entry.options.get(key) or self._entry.data.get(key, default)
+        val = self._entry.options.get(key)
+        if val is None:
+            val = self._entry.data.get(key)
+        return val if val is not None else default
 
     @property
     def native_value(self) -> datetime | None:
