@@ -46,7 +46,7 @@ _DAY_MAP = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6
 _SERVICE_SCHEMA = vol.Schema({
     vol.Required("entry_id"): cv.string,
     vol.Required(CONF_ACTIVATION_MODE): vol.In([MODE_MANUAL, MODE_SCHEDULE, MODE_HUMIDITY]),
-    vol.Required(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
+    vol.Optional(CONF_IRRIGATION_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
     vol.Optional(CONF_ZONE_ACTIVE): cv.boolean,
     vol.Optional(CONF_SCHEDULE_TIME): cv.string,
     vol.Optional(CONF_SCHEDULE_DAYS): vol.All(cv.ensure_list, [cv.string]),
@@ -159,16 +159,20 @@ async def start_irrigation(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
 
     async def _stop_pumps() -> None:
-        for pump in pumps:
-            switch_id = pump.get(CONF_PUMP_SWITCH)
-            if switch_id:
-                await hass.services.async_call(
-                    "switch", "turn_off", {"entity_id": switch_id}, blocking=True
-                )
-        if entry_data is not None:
-            entry_data["irrigating"] = False
-            entry_data.pop("stop_cancel", None)
-        _LOGGER.debug("Irrigation stopped for %s", entry.title)
+        try:
+            for pump in pumps:
+                switch_id = pump.get(CONF_PUMP_SWITCH)
+                if switch_id:
+                    await hass.services.async_call(
+                        "switch", "turn_off", {"entity_id": switch_id}, blocking=True
+                    )
+        except Exception as err:
+            _LOGGER.warning("Error stopping pumps for %s: %s", entry.title, err)
+        finally:
+            if entry_data is not None:
+                entry_data["irrigating"] = False
+                entry_data.pop("stop_cancel", None)
+            _LOGGER.debug("Irrigation stopped for %s", entry.title)
 
     @callback
     def _stop_callback(now) -> None:
@@ -287,7 +291,10 @@ async def _start_single_pump(hass: HomeAssistant, entry: ConfigEntry, pump: dict
     await hass.services.async_call("switch", "turn_on", {"entity_id": switch_id}, blocking=True)
 
     async def _stop_pump() -> None:
-        await hass.services.async_call("switch", "turn_off", {"entity_id": switch_id}, blocking=True)
+        try:
+            await hass.services.async_call("switch", "turn_off", {"entity_id": switch_id}, blocking=True)
+        except Exception as err:
+            _LOGGER.warning("Error stopping single pump %s for %s: %s", switch_id, entry.title, err)
         _LOGGER.debug("Single pump %s stopped for zone %s", switch_id, entry.title)
 
     @callback
